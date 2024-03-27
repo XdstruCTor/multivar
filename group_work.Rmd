@@ -15,7 +15,7 @@ library(dplyr)
 
 ```{r}
 # Read in the wine dataset 
-wine_data <- read.csv("~/Documents/SCHOOL/STOCHASTIC PROCESSES/winequality-white.csv", sep=";")
+wine_data <- read.csv("C:/Users/user/OneDrive - United States International University (USIU)/SPRING 2024/STA 2010/Assign/winequality-white.csv", sep=";")
 
 # Print the first few entries
 head(wine_data)
@@ -43,7 +43,12 @@ wine_data$quality <- as.factor(wine_data$quality)
 # Check data type/structure again
 str(wine_data)
 ```
+```{r}
+#summarizing correlations within the dataset
+corr_matrix <- cor(wine_data[, sapply(wine_data, is.numeric)]) # For numeric columns
+ggcorrplot::ggcorrplot(corr_matrix, hc.order = TRUE)
 
+```
 
 a. Select only three variables that are correlated. NOTE: The correlation may not be
 strong but will be the highest of what is available.
@@ -93,7 +98,16 @@ print(paste(pair_names[1], "-", pair_names[2], ":", abs(correlation_matrix[indic
 ```
 We used absolute values to get the highest correlation values and not necessarily the strongest correlation. The three variables chosen are density, residual.sugar and alcohol. This can be confirmed by the plot below
 ```{r}
-corrplot::corrplot(cor.wine_data, method = "ellipse")
+# Produce a matrix of plots for the first four variables 
+library(ggplot2)
+library(GGally)
+wine_data.gg <- ggpairs(data = wine_data, columns = c(4,8,11))
+wine_data.gg
+
+# Color the points by wine type 
+wine_data.gg <- ggpairs(data = wine_data, mapping = aes(color = quality), columns = c(4,8,11))
+
+wine_data.gg
 ```
 
 Subset the wine data to work with the three chosen variables.
@@ -150,17 +164,99 @@ library(mvtnorm)
 mu_sim <- colMeans(chosen_subset)
 sigma_sim <- cov(chosen_subset)
 
-# Generate 100 multivariate normal samples
 multnorm_sample <- rmvnorm(n = 100, mean = mu_sim, sigma = sigma_sim)
-# multnorm_density <- dmvnorm(multnorm_sample, mean = mu_sim, sigma = sigma_sim)
 
-# View the first 6 samples
-head(multnorm_sample)
-# multnorm_density
+multnorm_dens <- dmvnorm(chosen_subset, mean = mu_sim, sigma = sigma_sim)
 
-# Scatterplot of the multivariate samples and color using wine quality 
-scatterplot3d(multnorm_sample, color = wine_data[1:100, ]$quality) 
+# Create scatter plot of density heights 
+scatterplot3d(cbind(multnorm_sample, multnorm_dens),    
+                color="blue", pch="", type = "h",             
+                              xlab = "x", ylab = "y", zlab = "density")
 ```
+```{r}
+
+# Load the mvtnorm package for multivariate normal calculations
+library(mvtnorm)
+library(ggplot2)
+library(plotly)
+
+# Calculate the mean vector and covariance matrix for the selected variables
+mu_sim <- colMeans(chosen_subset)
+sigma_sim <- cov(chosen_subset)
+
+# Probability level
+p <- 0.95
+
+# Function to compute contour lines
+compute_contour <- function(mu, sigma, p, n = 100) {
+  # Generate grid of points
+  x <- seq(mu[1] - 3*sqrt(sigma[1, 1]), mu[1] + 3*sqrt(sigma[1, 1]), length.out = n)
+  y <- seq(mu[2] - 3*sqrt(sigma[2, 2]), mu[2] + 3*sqrt(sigma[2, 2]), length.out = n)
+  z <- seq(mu[3] - 3*sqrt(sigma[3, 3]), mu[3] + 3*sqrt(sigma[3, 3]), length.out = n)
+  grid <- expand.grid(x = x, y = y, z = z)
+  
+  # Compute the multivariate normal density for each point in the grid
+  density <- dmvnorm(grid, mean = mu, sigma = sigma)
+  
+  # Reshape density vector into a three-dimensional array
+  dim(density) <- c(length(x), length(y), length(z))
+  
+  # Find contour levels corresponding to the desired probability
+  contour_levels <- quantile(density, p)
+  
+  # Compute the contour lines
+  contours <- list()
+  contours$x <- x
+  contours$y <- y
+  contours$z <- z
+  contours$density <- density
+  contours$contour_levels <- contour_levels
+  
+  # Return the contour lines
+  return(contours)
+}
+
+# Compute contour lines
+contours <- compute_contour(mu_sim, sigma_sim, p)
+
+# Create an interactive 3D plot with contour lines
+plot_ly(x = contours$x, y = contours$y, z = contours$z, 
+        type = "contour", contours = list(z = list(show = TRUE, usecolormap = TRUE, project = TRUE)),
+        colorscale = list(c(0, "rgb(255,0,0)"), list(0.5, "rgb(0,255,0)"), c(1, "rgb(0,0,255)")))
+
+```
+
+
+
+
+
+```{r}
+library(MVN)
+subset_mvntest <- mvn(chosen_subset, mvnTest="mardia",multivariatePlot = "qq")
+subset_mvntest
+```
+
+e. Generate 200 samples from the dataset containing the three variables you had
+earlier.
+```{r}
+chosen_subset_two <- chosen_var[201:400,]
+chosen_subset_two
+```
+
+f. Assuming a multivariate t-distribution, check whether the samples follow a
+multivariate normal distribution using the Mardia Test and plot the relevant qqplot
+for the test.
+```{r}
+sub_two_mvntest <- mvn(chosen_subset_two, mvnTest="mardia",multivariatePlot = "qq")
+sub_two_mvntest
+```
+```{r}
+print(sub_two_mvntest)
+
+
+```
+
+
 
 
 
