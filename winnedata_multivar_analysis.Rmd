@@ -1,6 +1,6 @@
 ---
-title: "group 1"
-author: "MICHAEL VUKASU"
+title: "MULTIVARIATE ANALYSIS OF THE WINEQUALITY DATASET"
+author: "VAN TASI"
 date: "2024-03-26"
 output: html_document
 ---
